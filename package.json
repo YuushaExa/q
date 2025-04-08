@@ -16,6 +16,6 @@
   "license": "ISC",
   "dependencies": {
     "ejs": "^3.1.9",
-    "node-fetch": "^2.7.0" // Make sure it's v2.x if using CommonJS (default node)
+    "node-fetch": "^2.7.0" 
   }
 }
