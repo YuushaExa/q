@@ -3,24 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= taxonomySingular %>: <%= term %></title>
+    <%# Use the correctly passed term string %>
+    <title><%= taxonomySingular.charAt(0).toUpperCase() + taxonomySingular.slice(1) %>: <%= term %></title>
      <style> /* Basic styling */
         body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
-        .item { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        .item { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; overflow: hidden; /* Contains float */ }
+        .taxonomies span { background-color: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 5px; font-size: 0.9em;}
         a { text-decoration: none; color: #007bff; }
         a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
+    <%# Use ../ to go up one level from /tag/ or /developer/ %>
     <p><a href="../index.html">← Back to Home</a></p>
+
+    <%# Use the correctly passed term string %>
     <h1><%= taxonomySingular.charAt(0).toUpperCase() + taxonomySingular.slice(1) %>: <%= term %></h1>
 
     <% if (items && items.length) { %>
-        <p>Items with this <%= taxonomySingular %>:</p>
+        <p>Items associated with this <%= taxonomySingular %>:</p>
         <% items.forEach(item => { %>
             <div class="item">
+                 <%# Display item title %>
                 <h2><%= item.title || 'No Title' %></h2>
-                <!-- Add other item details as needed -->
+
+                <%# Display image if available %>
+                 <% if (item.image && item.image.url) { %>
+                    <img src="<%= item.image.url %>" alt="<%= item.title %> cover" width="80" style="float: right; margin-left: 10px; margin-bottom: 5px;">
+                <% } %>
+
+                <%# Display formatted description %>
+                <p><%- item.description ? item.description.replace(/\[url=([^\]]+)\]([^\[]+)\[\/url\]/g, '<a href="$1" target="_blank">$2</a>').replace(/\n/g, '<br>') : 'No Description' %></p>
+
+                 <div style="clear: both; margin-bottom: 10px;"></div> <%# Clear float and add space %>
+
+                <%# --- Optional: Display OTHER taxonomies --- %>
+                 <%# Example: If on a developer page, show the item's tags %>
+                 <% if (taxonomySingular !== 'tag' && config.taxonomies.tag && item[config.taxonomies.tag] && item[config.taxonomies.tag].length) { %>
+                     <div class="taxonomies">
+                         <strong>Tags:</strong>
+                         <% item[config.taxonomies.tag].forEach(tag => { %>
+                             <% if (tag) { // Assuming tags are strings %>
+                             <%# Use ../tag/ for relative link %>
+                             <span><a href="../tag/<%= slugify(tag) %>.html"><%= tag %></a></span>
+                             <% } %>
+                         <% }); %>
+                     </div>
+                 <% } %>
+
+                 <%# Example: If on a tag page, show the item's developers %>
+                 <% if (taxonomySingular !== 'developer' && config.taxonomies.developer && item[config.taxonomies.developer] && item[config.taxonomies.developer].length) { %>
+                     <div class="taxonomies">
+                         <strong>Developers:</strong>
+                         <%# Access developer objects and their names CORRECTLY here %>
+                         <% item[config.taxonomies.developer].forEach(devObj => { %>
+                             <% if (devObj && devObj.name) { %>
+                                <%# Use ../developer/ for relative link %>
+                                <span><a href="../developer/<%= slugify(devObj.name) %>.html"><%= devObj.name %></a></span>
+                             <% } %>
+                         <% }); %>
+                     </div>
+                 <% } %>
+
             </div>
         <% }); %>
     <% } else { %>
