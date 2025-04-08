@@ -19,22 +19,34 @@
         <% items.forEach(item => { %>
             <div class="item">
                 <h2><%= item.title || 'No Title' %></h2>
-                <p><%= item.description || 'No Description' %></p>
+                <p><%- item.description ? item.description.replace(/\[url=([^\]]+)\]([^\[]+)\[\/url\]/g, '<a href="$1" target="_blank">$2</a>').replace(/\n/g, '<br>') : 'No Description' %></p> {/* Updated description handling */}
+                <% if (item.image && item.image.url) { %>
+                    <img src="<%= item.image.url %>" alt="<%= item.title %> cover" width="100" style="float: right; margin-left: 10px;">
+                <% } %>
                 <div class="taxonomies">
+                    <%# --- TAGS (Assuming tags are strings, adjust if they are objects too) --- %>
                     <% if (item.tags && item.tags.length) { %>
                         <strong>Tags:</strong>
                         <% item.tags.forEach(tag => { %>
+                            <% if (tag) { %>
                             <span><a href="./tag/<%= slugify(tag) %>.html"><%= tag %></a></span>
+                            <% } %>
                         <% }); %>
                         <br>
                     <% } %>
+
+                    <%# --- DEVELOPERS (Corrected logic) --- %>
                     <% if (item.developers && item.developers.length) { %>
                         <strong>Developers:</strong>
-                        <% item.developers.forEach(dev => { %>
-                            <span><a href="./developer/<%= slugify(dev) %>.html"><%= dev %></a></span>
+                        <% item.developers.forEach(developerObj => { %>
+                            <%# Check if the object and its name property exist %>
+                            <% if (developerObj && developerObj.name) { %>
+                                <span><a href="./developer/<%= slugify(developerObj.name) %>.html"><%= developerObj.name %></a></span>
+                            <% } %>
                         <% }); %>
                     <% } %>
                 </div>
+                 <div style="clear: both;"></div> <%# Clear float for image %>
             </div>
         <% }); %>
     <% } else { %>
