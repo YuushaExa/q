@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= taxonomySingular %>: <%= term %></title>
+     <style> /* Basic styling */
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+        .item { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        a { text-decoration: none; color: #007bff; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <p><a href="../index.html">← Back to Home</a></p>
+    <h1><%= taxonomySingular.charAt(0).toUpperCase() + taxonomySingular.slice(1) %>: <%= term %></h1>
+
+    <% if (items && items.length) { %>
+        <p>Items with this <%= taxonomySingular %>:</p>
+        <% items.forEach(item => { %>
+            <div class="item">
+                <h2><%= item.title || 'No Title' %></h2>
+                <!-- Add other item details as needed -->
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p>No items found for this <%= taxonomySingular %>.</p>
+    <% } %>
+
+</body>
+</html>
