@@ -1,58 +1,46 @@
-name: Build and Deploy SSG Site (No Lockfile)
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main # Or your default branch (e.g., master)
-  workflow_dispatch: # Allows manual triggering from the Actions tab
+    branches: ["main"]  # Change this to your default branch if it's different
+  workflow_dispatch:  # Allows manual triggering
 
-# Allow one concurrent deployment
+permissions:
+  contents: read  # Allow reading repository contents
+  pages: write    # Allow writing to GitHub Pages
+  id-token: write # Required for GitHub Pages deployment
+
 concurrency:
   group: "pages"
-  cancel-in-progress: true
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build_and_deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }} # Output the deployed URL
 
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v4 # Use latest version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1  # Limit the checkout to the latest commit
 
-      - name: Set up Node.js ⚙️
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Use Node 18 or later, or adjust if needed
-          # Caching will now be based on package.json, less precise than lockfile
-          cache: 'npm'
+          node-version: '20'  # Specify the Node.js version
 
-      # --- MODIFIED STEP ---
-      - name: Install Dependencies (using npm install) 📦
-        # Use 'npm install' because package-lock.json is ignored
-        run: npm install
+      - name: Install dependencies
+        run: npm install  # Install dependencies before running the script
 
-      - name: Build Static Site 🏗️
-        run: npm run build # This executes 'node ssg.js'
+      - name: Run ssg script
+        run: node ssg.js  # Your script to generate posts
 
-      - name: Setup Pages 📃
-        uses: actions/configure-pages@v4
-
-      - name: Upload Artifact  Artifact ⬆️
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload content from the output directory specified in config.json
-          # Make sure this matches your config.outputDir
-          path: ./public
-
-      - name: Deploy to GitHub Pages 🚀
+          path: public  # Path to the directory containing your generated files
+          
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
