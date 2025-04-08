@@ -1,0 +1,11 @@
+{
+  "template": "vnTemplate",
+  "data": [
+    "https://raw.githubusercontent.com/YuushaExa/testapi/refs/heads/main/merged.json"
+  ],
+  "taxonomies": {
+    "tag": "tags",
+    "developer": "developers"
+  },
+  "outputDir": "public" // Added: Specify the output directory
+}
