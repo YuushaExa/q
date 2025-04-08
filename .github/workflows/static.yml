@@ -1,4 +1,4 @@
-name: Build and Deploy SSG Site
+name: Build and Deploy SSG Site (No Lockfile)
 
 on:
   push:
@@ -31,10 +31,13 @@ jobs:
       - name: Set up Node.js ⚙️
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Use Node 18 or later for native fetch, or adjust if needed
-          cache: 'npm' # Cache npm dependencies
+          node-version: '18' # Use Node 18 or later, or adjust if needed
+          # Caching will now be based on package.json, less precise than lockfile
+          cache: 'npm'
 
-      - name: Install Dependencies 📦
+      # --- MODIFIED STEP ---
+      - name: Install Dependencies (using npm install) 📦
+        # Use 'npm install' because package-lock.json is ignored
         run: npm install
 
       - name: Build Static Site 🏗️
@@ -52,4 +55,4 @@ jobs:
 
       - name: Deploy to GitHub Pages 🚀
         id: deployment
-        uses: actions/deploy-pages@v4 # This action does the deployment based on the uploaded artifact
+        uses: actions/deploy-pages@v4
