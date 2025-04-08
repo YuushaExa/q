@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Generated Site</title>
+    <style> /* Basic styling */
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+        .item { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        .taxonomies span { background-color: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 5px; font-size: 0.9em;}
+        a { text-decoration: none; color: #007bff; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Site Content</h1>
+
+    <% if (items && items.length) { %>
+        <% items.forEach(item => { %>
+            <div class="item">
+                <h2><%= item.title || 'No Title' %></h2>
+                <p><%= item.description || 'No Description' %></p>
+                <div class="taxonomies">
+                    <% if (item.tags && item.tags.length) { %>
+                        <strong>Tags:</strong>
+                        <% item.tags.forEach(tag => { %>
+                            <span><a href="./tag/<%= slugify(tag) %>.html"><%= tag %></a></span>
+                        <% }); %>
+                        <br>
+                    <% } %>
+                    <% if (item.developers && item.developers.length) { %>
+                        <strong>Developers:</strong>
+                        <% item.developers.forEach(dev => { %>
+                            <span><a href="./developer/<%= slugify(dev) %>.html"><%= dev %></a></span>
+                        <% }); %>
+                    <% } %>
+                </div>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p>No data found.</p>
+    <% } %>
+
+</body>
+</html>
