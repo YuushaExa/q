@@ -1,0 +1,21 @@
+{
+  "name": "github-pages-ssg",
+  "version": "1.0.0",
+  "description": "Node.js SSG for GitHub Pages",
+  "main": "ssg.js",
+  "scripts": {
+    "build": "node ssg.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ssg",
+    "github pages",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.1.9",
+    "node-fetch": "^2.7.0" // Make sure it's v2.x if using CommonJS (default node)
+  }
+}
