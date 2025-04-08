@@ -120,76 +120,135 @@ async function runSSG() {
         { items: itemsArray } // Pass the fetched data as 'items'
     );
 
-    // 5. Process Taxonomies
-   console.log("Processing taxonomies...");
-    if (config.taxonomies && Object.keys(config.taxonomies).length > 0) {
-        const taxonomyData = {}; // Structure: { tag: { termSlug: { term: 'Term Name', items: [] } }, developer: { ... } }
+ console.log("\nProcessing taxonomies - Gathering data...");
+    // Structure: { taxonomySlug: { termSlug: { term: 'Term Name', items: [] } } }
+    // e.g., { tag: { action: { term: 'Action', items: [...] } }, developer: { miel: { term: 'Miel', items: [...] } } }
+    const taxonomyData = {};
 
+    // Check if taxonomies are defined in the config
+    if (config.taxonomies && typeof config.taxonomies === 'object' && Object.keys(config.taxonomies).length > 0) {
+
+        // Iterate through each taxonomy defined in the config (e.g., "tag", "developer")
         for (const [taxonomySlug, dataKey] of Object.entries(config.taxonomies)) {
-            // taxonomySlug: "tag", dataKey: "tags"
-            // taxonomySlug: "developer", dataKey: "developers"
+            // Example: taxonomySlug = "developer", dataKey = "developers"
 
-            taxonomyData[taxonomySlug] = {}; // Initialize structure for this taxonomy
+            console.log(`-- Processing taxonomy: '${taxonomySlug}' (using data key: '${dataKey}')`);
 
-            itemsArray.forEach(item => {
-                 // Check if the key (e.g., 'developers', 'tags') exists on the item
-                if (item[dataKey] && Array.isArray(item[dataKey])) { // Ensure it's an array
-                    item[dataKey].forEach(termValue => { // termValue could be a string (for tags) or an object (for developers)
-                        if (!termValue) return; // Skip empty/null terms
+            // Initialize the structure for this specific taxonomy within taxonomyData
+            taxonomyData[taxonomySlug] = {};
 
-                        let termName = '';
+            // Iterate through every item fetched from the data source
+            itemsArray.forEach((item, itemIndex) => {
+                // Get the raw value for the current taxonomy key (e.g., item.tags, item.developers)
+                const rawTermValue = item[dataKey];
 
-                        // --- MODIFICATION START ---
-                        // Check if the termValue is specifically for the 'developers' key (or other object-based keys)
-                        if (dataKey === 'developers' && typeof termValue === 'object' && termValue !== null && termValue.name) {
-                             termName = termValue.name; // Extract the name property
-                        }
-                        // Handle potential plain string taxonomies (like 'tags')
-                        else if (typeof termValue === 'string') {
-                             termName = termValue;
-                        }
-                        // --- MODIFICATION END ---
-                        else {
-                            // Optional: Log if the format is unexpected for other keys
-                            // console.warn(`Skipping unexpected term format in ${dataKey}:`, termValue);
-                            return; // Skip if format is unknown or invalid for the key type
-                        }
-
-                        if (!termName) return; // Skip if no valid name could be extracted
-
-                        const termSlug = slugify(termName);
-                        if (!taxonomyData[taxonomySlug][termSlug]) {
-                            taxonomyData[taxonomySlug][termSlug] = {
-                                term: termName, // Store the extracted name
-                                items: []
-                            };
-                        }
-                        // Only add item if it's not already in the list for this term (optional optimization)
-                        if (!taxonomyData[taxonomySlug][termSlug].items.some(existingItem => existingItem.id === item.id)) {
-                             taxonomyData[taxonomySlug][termSlug].items.push(item);
-                        }
-                    });
+                // Normalize the term value(s) into an array for consistent processing
+                let termsToProcess = [];
+                if (rawTermValue) {
+                    termsToProcess = Array.isArray(rawTermValue) ? rawTermValue : [rawTermValue];
+                } else {
+                    // If the key doesn't exist or is null/undefined for this item, skip it for this taxonomy
+                    return; // Go to the next item
                 }
-                // Handle cases where the dataKey might point to a single string (less likely based on your data, but safe)
-                else if (item[dataKey] && typeof item[dataKey] === 'string') {
-                     const termName = item[dataKey];
-                     const termSlug = slugify(termName);
-                      if (!taxonomyData[taxonomySlug][termSlug]) {
-                         taxonomyData[taxonomySlug][termSlug] = { term: termName, items: [] };
-                     }
-                      if (!taxonomyData[taxonomySlug][termSlug].items.some(existingItem => existingItem.id === item.id)) {
-                          taxonomyData[taxonomySlug][termSlug].items.push(item);
-                      }
-                }
-            });
 
-            // 6. Generate Taxonomy Pages (rest of the loop is likely fine)
-            // ... (generate pages using the corrected taxonomyData) ...
-        }
+                // Process each term associated with the current item for this taxonomy
+                termsToProcess.forEach(termValue => {
+                    // Skip if the termValue itself is null, undefined, empty string, or empty object
+                    if (!termValue || (typeof termValue === 'string' && termValue.trim() === '') || (typeof termValue === 'object' && Object.keys(termValue).length === 0)) {
+                        return; // Go to the next term in the array
+                    }
+
+                    let termName = ''; // This will hold the final string representation of the term
+
+                    // Determine the term's string name based on its type and the specific taxonomy key
+                    // --- Customize this section if you have more object-based taxonomies ---
+                    if (dataKey === 'developers' && typeof termValue === 'object' && termValue !== null && typeof termValue.name === 'string' && termValue.name.trim() !== '') {
+                        // Specific handling for 'developers' (expects objects with a non-empty 'name' property)
+                        termName = termValue.name.trim();
+                    } else if (typeof termValue === 'string' && termValue.trim() !== '') {
+                        // Generic handling for string-based taxonomies (like 'tags')
+                        termName = termValue.trim();
+                    }
+                    // --- End Customization Section ---
+                    else {
+                        // If the format doesn't match expected types
+                        console.warn(`   [WARN] Item ID ${item.id || `(index ${itemIndex})`}: Skipping unexpected/empty term format in taxonomy '${taxonomySlug}' (key '${dataKey}'):`, termValue);
+                        return; // Skip this specific term
+                    }
+
+                    // Create a URL-friendly slug from the extracted term name
+                    const termSlug = slugify(termName);
+                    if (!termSlug) {
+                        console.warn(`   [WARN] Item ID ${item.id || `(index ${itemIndex})`}: Skipping term '${termName}' because it resulted in an empty slug.`);
+                        return; // Skip if slug is empty
+                    }
+
+                    // If this term slug hasn't been seen before for this taxonomy, initialize its entry
+                    if (!taxonomyData[taxonomySlug][termSlug]) {
+                        taxonomyData[taxonomySlug][termSlug] = {
+                            term: termName, // Store the display name
+                            items: []       // Initialize item list
+                        };
+                    }
+
+                    // Add the current item to this term's list, avoiding duplicates (based on item.id)
+                    if (item.id && !taxonomyData[taxonomySlug][termSlug].items.some(existingItem => existingItem.id === item.id)) {
+                        taxonomyData[taxonomySlug][termSlug].items.push(item);
+                    } else if (!item.id) {
+                         // If items have no ID, we might add duplicates. Consider adding a warning or different comparison.
+                         // console.warn(`   [WARN] Item index ${itemIndex} has no ID. Duplicate check skipped for term '${termName}'.`);
+                         taxonomyData[taxonomySlug][termSlug].items.push(item);
+                    }
+                }); // End of loop for terms within one item (termsToProcess.forEach)
+
+            }); // End of loop for all items (itemsArray.forEach)
+
+            console.log(`-- Finished processing '${taxonomySlug}'. Found ${Object.keys(taxonomyData[taxonomySlug]).length} unique terms.`);
+
+        } // End of loop for all configured taxonomies (for...of Object.entries(config.taxonomies))
+
+
+        // ===========================================================
+        // 6. Generate Taxonomy Pages - RENDER HTML
+        // ===========================================================
+        console.log("\nGenerating taxonomy pages...");
+        for (const [taxonomySlug, terms] of Object.entries(taxonomyData)) {
+            // terms is an object like { termSlug1: { term: '...', items: [] }, termSlug2: { ... } }
+            console.log(`-- Generating pages for taxonomy: '${taxonomySlug}'`);
+
+            // Create the output subdirectory for this taxonomy (e.g., public/tag/, public/developer/)
+            const taxonomyOutputDir = path.join(outputDir, taxonomySlug);
+            if (!fs.existsSync(taxonomyOutputDir)) {
+                 fs.mkdirSync(taxonomyOutputDir, { recursive: true });
+                 // console.log(`   Created directory: ${taxonomyOutputDir}`); // Optional logging
+            }
+
+            // Iterate through each unique term found for this taxonomy
+            let count = 0;
+            for (const [termSlug, termData] of Object.entries(terms)) {
+                // termData is { term: 'Term Name', items: [...] }
+                const outputPath = path.join(taxonomyOutputDir, `${termSlug}.html`); // e.g., public/developer/miel.html
+
+                // Render the taxonomy.ejs template with the specific data for this term
+                await renderAndWrite(
+                    'taxonomy', // Template file name (taxonomy.ejs)
+                    outputPath, // Output file path
+                    {
+                        taxonomySingular: taxonomySlug, // Pass slug (e.g., "developer")
+                        term: termData.term,            // Pass display name (e.g., "Miel")
+                        items: termData.items,          // Pass associated items array
+                        config: config                  // Pass global config (needed for enhanced taxonomy.ejs)
+                    }
+                );
+                count++;
+            } // End of loop for each term within a taxonomy (for...of Object.entries(terms))
+             console.log(`-- Generated ${count} pages for taxonomy '${taxonomySlug}'.`);
+        } // End of loop for generating pages for each taxonomy (for...of Object.entries(taxonomyData))
+
     } else {
-        console.log("No taxonomies defined in config.");
+        // If no taxonomies are defined in config.json
+        console.log("No taxonomies defined in config.json. Skipping taxonomy processing.");
     }
-
     console.log("Static Site Generation Complete!");
 }
 
