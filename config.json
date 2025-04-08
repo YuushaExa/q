@@ -7,5 +7,5 @@
     "tag": "tags",
     "developer": "developers"
   },
-  "outputDir": "public" // Added: Specify the output directory
+  "outputDir": "public" 
 }
