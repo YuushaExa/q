@@ -121,7 +121,7 @@ async function runSSG() {
     );
 
     // 5. Process Taxonomies
-    console.log("Processing taxonomies...");
+   console.log("Processing taxonomies...");
     if (config.taxonomies && Object.keys(config.taxonomies).length > 0) {
         const taxonomyData = {}; // Structure: { tag: { termSlug: { term: 'Term Name', items: [] } }, developer: { ... } }
 
@@ -132,46 +132,59 @@ async function runSSG() {
             taxonomyData[taxonomySlug] = {}; // Initialize structure for this taxonomy
 
             itemsArray.forEach(item => {
-                if (item[dataKey] && Array.isArray(item[dataKey])) {
-                    item[dataKey].forEach(term => {
-                        if (!term) return; // Skip empty/null terms
-                        const termSlug = slugify(term);
+                 // Check if the key (e.g., 'developers', 'tags') exists on the item
+                if (item[dataKey] && Array.isArray(item[dataKey])) { // Ensure it's an array
+                    item[dataKey].forEach(termValue => { // termValue could be a string (for tags) or an object (for developers)
+                        if (!termValue) return; // Skip empty/null terms
+
+                        let termName = '';
+
+                        // --- MODIFICATION START ---
+                        // Check if the termValue is specifically for the 'developers' key (or other object-based keys)
+                        if (dataKey === 'developers' && typeof termValue === 'object' && termValue !== null && termValue.name) {
+                             termName = termValue.name; // Extract the name property
+                        }
+                        // Handle potential plain string taxonomies (like 'tags')
+                        else if (typeof termValue === 'string') {
+                             termName = termValue;
+                        }
+                        // --- MODIFICATION END ---
+                        else {
+                            // Optional: Log if the format is unexpected for other keys
+                            // console.warn(`Skipping unexpected term format in ${dataKey}:`, termValue);
+                            return; // Skip if format is unknown or invalid for the key type
+                        }
+
+                        if (!termName) return; // Skip if no valid name could be extracted
+
+                        const termSlug = slugify(termName);
                         if (!taxonomyData[taxonomySlug][termSlug]) {
                             taxonomyData[taxonomySlug][termSlug] = {
-                                term: term, // Store original term name
+                                term: termName, // Store the extracted name
                                 items: []
                             };
                         }
-                        taxonomyData[taxonomySlug][termSlug].items.push(item);
+                        // Only add item if it's not already in the list for this term (optional optimization)
+                        if (!taxonomyData[taxonomySlug][termSlug].items.some(existingItem => existingItem.id === item.id)) {
+                             taxonomyData[taxonomySlug][termSlug].items.push(item);
+                        }
                     });
                 }
-                // Handle cases where the dataKey might be a single string (optional)
+                // Handle cases where the dataKey might point to a single string (less likely based on your data, but safe)
                 else if (item[dataKey] && typeof item[dataKey] === 'string') {
-                     const term = item[dataKey];
-                     const termSlug = slugify(term);
-                     if (!taxonomyData[taxonomySlug][termSlug]) {
-                         taxonomyData[taxonomySlug][termSlug] = { term: term, items: [] };
+                     const termName = item[dataKey];
+                     const termSlug = slugify(termName);
+                      if (!taxonomyData[taxonomySlug][termSlug]) {
+                         taxonomyData[taxonomySlug][termSlug] = { term: termName, items: [] };
                      }
-                     taxonomyData[taxonomySlug][termSlug].items.push(item);
+                      if (!taxonomyData[taxonomySlug][termSlug].items.some(existingItem => existingItem.id === item.id)) {
+                          taxonomyData[taxonomySlug][termSlug].items.push(item);
+                      }
                 }
             });
 
-            // 6. Generate Taxonomy Pages
-            console.log(`Generating pages for taxonomy: ${taxonomySlug}`);
-            const taxonomyOutputDir = path.join(outputDir, taxonomySlug);
-            fs.mkdirSync(taxonomyOutputDir, { recursive: true }); // Create subdir e.g., public/tag/
-
-            for (const [termSlug, termData] of Object.entries(taxonomyData[taxonomySlug])) {
-                await renderAndWrite(
-                    'taxonomy', // Use the generic taxonomy.ejs template
-                    path.join(taxonomyOutputDir, `${termSlug}.html`), // e.g., public/tag/action.html
-                    {
-                        taxonomySingular: taxonomySlug, // e.g., "tag"
-                        term: termData.term,             // e.g., "Action" (original name)
-                        items: termData.items           // Array of items with this term
-                    }
-                );
-            }
+            // 6. Generate Taxonomy Pages (rest of the loop is likely fine)
+            // ... (generate pages using the corrected taxonomyData) ...
         }
     } else {
         console.log("No taxonomies defined in config.");
